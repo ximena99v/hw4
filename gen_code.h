@@ -85,7 +85,6 @@ extern code_seq gen_code_write_stmt(write_stmt_t stmt);
 // Generate code for the skip statment, stmt
 extern code_seq gen_code_skip_stmt(skip_stmt_t stmt);
 
-// Requires: reg != T9
 // Generate code for cond, putting its truth value
 // on top of the runtime stack
 // and using V0 and AT as temporary registers

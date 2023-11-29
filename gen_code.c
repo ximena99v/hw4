@@ -254,6 +254,8 @@ code_seq gen_code_write_stmt(write_stmt_t stmt)
 // Generate code for the skip statment, stmt
 code_seq gen_code_skip_stmt(skip_stmt_t stmt)
 {
+    // never happens, but suppresses a warning from gcc
+    return code_seq_empty();
 
 }
 
@@ -262,26 +264,92 @@ code_seq gen_code_skip_stmt(skip_stmt_t stmt)
 // on top of the runtime stack
 // and using V0 and AT as temporary registers
 // May modify HI,LO when executed
-code_seq gen_code_condition(condition_t cond);
+code_seq gen_code_condition(condition_t cond)
+{
+    switch (cond.cond_kind) {
+    case cond_odd_cond: // odd condition
+	return gen_code_odd_cond(cond.data.odd_cond);
+	break;
+    case cond_rel_op: // relational operator condition
+	return en_code_relop_cond(cond.data.rel_op_cond);
+	break;
+    }
+    // never happens, but suppresses a warning from gcc
+    return code_seq_empty();
+    
+}
 
 // Generate code for cond, putting its truth value
 // on top of the runtime stack
 // and using V0 and AT as temporary registers
 // Modifies SP, HI,LO when executed
-code_seq gen_code_odd_condition(odd_condition_t cond);
+code_seq gen_code_odd_condition(odd_condition_t cond)
+{
+    code_seq ret = gen_code_expr(cond.expr);
+    ret = code_seq_concat(ret, code_pop_stack_into_reg(V0));
+    ret = code_seq_add_to_end(ret, code_seq_singleton(code_andi(V0, V0, 1)));
+    ret = code_seq_add_to_end(ret, code_push_reg(V0));
+    return ret;
+}
 
 // Generate code for cond, putting its truth value
 // on top of the runtime stack
 // and using V0 and AT as temporary registers
 // May also modify SP, HI,LO when executed
-code_seq gen_code_rel_op_condition(rel_op_condition_t cond);
+code_seq gen_code_rel_op_condition(rel_op_condition_t cond)
+{
+    // load top of the stack (the second operand) into AT
+    code_seq ret = code_pop_stack_into_reg(AT, typ);
+    // load next element of the stack into V0
+    ret = code_seq_concat(ret, code_pop_stack_into_reg(V0, typ));
+
+    // start out by doing the comparison
+    // and skipping the next 2 instructions if it's true
+    code_seq do_op = code_seq_empty();
+    switch (rel_op.code) {
+    case eqsym: 
+	if (typ == float_te) {
+	    do_op = code_seq_singleton(code_bfeq(V0, AT, 2));
+	} else {
+	    do_op = code_seq_singleton(code_beq(V0, AT, 2));
+	}
+	break;
+    case neqsym:
+    return ret;
+}
 
 // Generate code for the rel_op
 // applied to 2nd from top and top of the stack,
 // putting the result on top of the stack in their place,
 // and using V0 and AT as temporary registers
 // May also modify SP, HI,LO when executed
-code_seq gen_code_rel_op(token_t rel_op);
+code_seq gen_code_rel_op(token_t rel_op)
+{
+    switch (rel_op) {
+    case token_eq: // equal
+    return code_seq_singleton(code_seq_singleton);
+    break;
+    case token_neq: // not equal
+    return code_seq_singleton(code_seq_singleton);
+    break;
+    case token_lt: // less than
+    return code_seq_singleton(code_seq_singleton);
+    break;
+    case token_gt: // greater than
+    return code_seq_singleton(code_seq_singleton);
+    break;
+    case token_leq: // less than or equal
+    return code_seq_singleton(code_seq_singleton);
+    break;
+    case token_geq: // greater than or equal
+    return code_seq_singleton(code_seq_singleton);
+    break;
+    }
+    
+    // never happens, but suppresses a warning from gcc
+    return code_seq_empty();
+
+}
 
 // Generate code for the expression exp
 // putting the result on top of the stack,

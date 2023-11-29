@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.48 2023/11/15 17:00:21 leavens Exp leavens $
+# $Id: Makefile,v 1.51 2023/11/28 11:50:16 leavens Exp leavens $
 # Makefile for PL/0 compiler and code generation in COP 3402
 
 # Add .exe to the end of target to get that suffix in the rules
@@ -45,6 +45,8 @@ ALLTESTS = $(GTESTS) $(READTESTS) $(VMTESTS)
 EXPECTEDOUTPUTS = $(ALLTESTS:.pl0=.out)
 STUDENTTESTOUTPUTS = $(ALLTESTS:.pl0=.myo)
 
+# PROCEDURE_OBJECTS should name the modules used for implementing procedures
+PROCEDURE_OBJECTS = 
 # Add the names of your own files with a .o suffix to link them in the program
 # Feel free to edit the following definition of COMPILER_OBJECTS
 COMPILER_OBJECTS = $(COMPILER)_main.o $(PL0)_lexer.o lexer_utilities.o \
@@ -52,7 +54,7 @@ COMPILER_OBJECTS = $(COMPILER)_main.o $(PL0)_lexer.o lexer_utilities.o \
 		$(PL0).tab.o ast.o file_location.o unparser.o \
 		scope.o scope_check.o symtab.o id_use.o id_attrs.o \
 		instruction.o bof.o code.o \
-		gen_code.o literal_table.o
+		gen_code.o literal_table.o $(PROCEDURE_OBJECTS)
 
 # create the VM executable
 .PRECIOUS: $(VM)/$(VM)
@@ -89,6 +91,7 @@ clean:
 	$(RM) $(COMPILER).exe $(COMPILER)
 	$(RM) *.stackdump core
 	$(RM) $(SUBMISSIONZIPFILE)
+	cd $(VM); make clean
 
 cleanall: clean
 	$(RM) *.myo *.myto *.bof *.asm *.tout
@@ -110,6 +113,7 @@ cleanall: clean
 # The .bof files are the compiled binary object files.
 .PRECIOUS: %.bof
 %.bof: %.$(SUF) $(COMPILER)
+	$(RM) $@; umask 022
 	./$(COMPILER) $<
 
 # The .asm files are disassembled binary object files.
@@ -154,6 +158,7 @@ $(SUBMISSIONZIPFILE): *.c *.h $(STUDENTTESTOUTPUTS)
 # The use of cat char-inputs.txt | allows read statments to not hang
 .PRECIOUS: %.out
 %.out: %.bof $(RUNVM)
+	$(RM) $@; umask 022
 	cat char-inputs.txt | $(RUNVM) $< >$@ 2>&1
 
 %.tout: %.bof $(RUNVM)
